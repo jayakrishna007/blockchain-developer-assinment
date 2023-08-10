@@ -1,0 +1,32 @@
+1.60% of the WETH needs to use the following logic:
+a.swap WETH to USDC using KyberSwap Elastic,
+b.swap USDC to USDT using Zyber V3.
+
+
+
+import web3
+import utils
+
+# Connect to the Arbitrum network
+web3 = web3.Web3(Web3.HTTPProvider("https://arbitrum-mainnet.infura.io/v3/<YOUR_INFURA_KEY>"))
+
+# Deploy the swaper smart contract
+contract = utils.deploy_contract(web3, "swaper.sol")
+
+# Get the balance of the user's account
+balance = web3.eth.getBalance(web3.eth.defaultAccount)
+
+# Calculate the amount of WETH to be swapped
+amount = 1.60 / 100 * balance
+
+# Swap WETH to USDC using KyberSwap Elastic
+tx = contract.functions.swap(amount, "0x0d8775f648430679a709e98d2b0cb6250d2887f7").buildTransaction()
+web3.eth.sendRawTransaction(tx)
+
+# Swap USDC to USDT using Zyber V3
+tx = contract.functions.swap(amount, "0xd6eaf97229714f2d85a7f57429186f0374d5648d").buildTransaction()
+web3.eth.sendRawTransaction(tx)
+
+# Check the balance of the user's account to make sure the swap was successful
+new_balance = web3.eth.getBalance(web3.eth.defaultAccount)
+assert new_balance == balance - amount
