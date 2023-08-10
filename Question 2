@@ -1,0 +1,65 @@
+//2.40% of the WETH needs to use the following logic:
+//   a. swap 50% of the WETH to USDT using WOOFi V2
+//   b. swap 50% of the WETH to USDT using TraderJoe V2.1
+
+
+
+
+import web3
+import math
+
+def swap_weth(web3, weth_contract, woofi_contract, traderjoe_contract, amount):
+  """Swaps the given amount of WETH using WOOFi V2 and TraderJoe V2.1.
+
+  Args:
+    web3: A Web3 instance.
+    weth_contract: The WETH contract address.
+    woofi_contract: The WOOFi V2 contract address.
+    traderjoe_contract: The TraderJoe V2.1 contract address.
+    amount: The amount of WETH to swap.
+
+  Returns:
+    The amount of USDT received in the swap.
+  """
+
+  # Get the current price of USDT in WETH.
+  usdt_price_in_weth = web3.eth.get_contract(weth_contract).functions.price().call()
+
+  # Calculate the amount of USDT to swap for.
+  usdt_amount = amount * usdt_price_in_weth
+
+  # Swap half of the WETH for USDT on WOOFi V2.
+  woofi_txn = woofi_contract.functions.swap(usdt_amount / 2, 0).buildTransaction()
+  web3.eth.sendRawTransaction(woofi_txn)
+
+  # Swap the other half of the WETH for USDT on TraderJoe V2.1.
+  traderjoe_txn = traderjoe_contract.functions.swap(usdt_amount / 2, 0).buildTransaction()
+  web3.eth.sendRawTransaction(traderjoe_txn)
+
+  # Wait for both transactions to be mined.
+  web3.eth.waitForTransactionReceipt(woofi_txn)
+  web3.eth.waitForTransactionReceipt(traderjoe_txn)
+
+  # Get the total amount of USDT received in the swap.
+  total_usdt_amount = web3.eth.getBalance(web3.eth.getAccount("0x0"))
+
+  return total_usdt_amount
+
+if __name__ == "__main__":
+  # Connect to the Arbitrum network.
+  web3 = web3.Web3(web3.HTTPProvider("https://arb1.arbitrum.io/rpc"))
+
+  # Get the WETH contract address.
+  weth_contract = web3.eth.contract(address="0xc778417e0631411319f5e784ba63d47f230918eb")
+
+  # Get the WOOFi V2 contract address.
+  woofi_contract = web3.eth.contract(address="0xa468d68193c4619c03f31832416565a2f8931f1c")
+
+  # Get the TraderJoe V2.1 contract address.
+  traderjoe_contract = web3.eth.contract(address="0xb364945f699D61968645283745500e83D921e7AA")
+
+  # Swap 10 WETH using the above logic.
+  total_usdt_amount = swap_weth(web3, weth_contract, woofi_contract, traderjoe_contract, 10 * 10**18)
+
+  # Print the total amount of USDT received.
+  print("Received {} USDT.".format(total_usdt_amount))
