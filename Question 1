@@ -1,6 +1,6 @@
-1.60% of the WETH needs to use the following logic:
-a.swap WETH to USDC using KyberSwap Elastic,
-b.swap USDC to USDT using Zyber V3.
+//1.60% of the WETH needs to use the following logic:
+//  a.swap WETH to USDC using KyberSwap Elastic,
+//  b.swap USDC to USDT using Zyber V3.
 
 
 
