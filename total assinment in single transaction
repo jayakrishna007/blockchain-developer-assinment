@@ -1,35 +1,46 @@
 import web3
-import utils
+import json
 
-def swap(web3, contract, amount, token_in, token_out):
-  """Swaps an amount of token_in for token_out using the given contract."""
+# Connect to the Arbitrum network
+web3 = web3.Web3(Web3.HTTPProvider('https://arb1.arbitrum.io/rpc'))
 
-  txn = contract.functions.swap(amount, token_in, token_out).buildTransaction()
-  web3.eth.signTransaction(txn)
-  receipt = web3.eth.sendRawTransaction(txn.rawTransaction)
-  return receipt
+# Load the WOOFi V2 smart contract
+woofi_contract = web3.eth.contract(address='0xaec457f058d36243f80b6f33c1e31510e332a6b0', abi=json.loads('[{"inputs": [{"name": "token", "type": "address"}], "name": "swap", "outputs": [{"name": "amount", "type": "uint256"}], "stateMutability": "nonpayable", "type": "function"}]'))
+
+# Load the TraderJoe V2.1 smart contract
+traderjoe_contract = web3.eth.contract(address='0x5c120011af39e1298d540401d1f7b598b2b7341e', abi=json.loads('[{"inputs": [{"name": "token", "type": "address"}], "name": "swap", "outputs": [{"name": "amount", "type": "uint256"}], "stateMutability": "nonpayable", "type": "function"}]'))
+
+def swap(contract, token, amount):
+  """Swaps the specified amount of the token for USDT."""
+  return contract.functions.swap(token, amount).call()
 
 def main():
-  """The main function that performs the swap."""
+  """The main function."""
+  # Get the WETH address
+  weth_address = web3.eth.contract(address='0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2').address
 
-  web3 = utils.get_web3()
-  contract = utils.get_contract(web3)
+  # Swap 40% of the WETH to USDT using WOOFi V2
+  amount = 10 * 0.4
+  usdt_amount_woofi_v2 = swap(woofi_contract, weth_address, amount)
 
-  # Swap 1.60% of the WETH to USDC using KyberSwap Elastic.
-  amount = 10 * 0.016
-  token_in = "WETH"
-  token_out = "USDC"
-  receipt = swap(web3, contract, amount, token_in, token_out)
+  # Swap 40% of the WETH to USDT using TraderJoe V2.1
+  usdt_amount_traderjoe_v2 = swap(traderjoe_contract, weth_address, amount)
 
-  # Swap 2.40% of the WETH to USDT using WOOFi V2 and TraderJoe V2.1.
-  amount = 10 * 0.024
-  token_in = "WETH"
-  token_out = "USDT"
-  receipt = swap(web3, contract, amount / 2, token_in, token_out, "WOO")
-  receipt = swap(web3, contract, amount / 2, token_in, token_out, "TJoe")
+  # Send a single transaction to do the above swap
+  transaction = web3.eth.sendTransaction({
+    'from': web3.eth.defaultAccount,
+    'to': weth_address,
+    'value': 0,
+    'data': woofi_contract.encodeABI('swap', [weth_address, amount]),
+    'gasPrice': web3.eth.gasPrice
+  })
 
-  # Print the receipt.
-  print(receipt)
+  # Wait for the transaction to be mined
+  transaction.wait()
 
-if __name__ == "__main__":
+  print('Successfully swapped 10 WETH in an optimal way on Arbitrum!')
+  print('USDT amount received from WOOFi V2:', usdt_amount_woofi_v2)
+  print('USDT amount received from TraderJoe V2.1:', usdt_amount_traderjoe_v2)
+
+if __name__ == '__main__':
   main()
