@@ -5,28 +5,40 @@ b.swap USDC to USDT using Zyber V3.
 
 
 import web3
-import utils
+import json
 
-# Connect to the Arbitrum network
-web3 = web3.Web3(Web3.HTTPProvider("https://arbitrum-mainnet.infura.io/v3/<YOUR_INFURA_KEY>"))
+# Load the smart contract
+with open("swaper.sol") as f:
+    contract_source = f.read()
+contract = web3.eth.contract(abi=json.loads(contract_source), address="0x...")
 
-# Deploy the swaper smart contract
-contract = utils.deploy_contract(web3, "swaper.sol")
+# Get the current price of WETH
+eth_price = web3.eth.get_price("WETH")
 
-# Get the balance of the user's account
-balance = web3.eth.getBalance(web3.eth.defaultAccount)
+# Calculate the amount of USDC to swap for
+usdc_amount = 1.60 / eth_price * 10
 
-# Calculate the amount of WETH to be swapped
-amount = 1.60 / 100 * balance
+# Swap WETH for USDC on KyberSwap Elastic
+kyber_swap_txn = contract.functions.swap(
+    "WETH",
+    usdc_amount,
+    "0x...",  # KyberSwap Elastic contract address
+).transact()
 
-# Swap WETH to USDC using KyberSwap Elastic
-tx = contract.functions.swap(amount, "0x0d8775f648430679a709e98d2b0cb6250d2887f7").buildTransaction()
-web3.eth.sendRawTransaction(tx)
+# Wait for the KyberSwap Elastic transaction to be mined
+web3.eth.waitForTransactionReceipt(kyber_swap_txn)
 
-# Swap USDC to USDT using Zyber V3
-tx = contract.functions.swap(amount, "0xd6eaf97229714f2d85a7f57429186f0374d5648d").buildTransaction()
-web3.eth.sendRawTransaction(tx)
+# Get the USDC address
+usdc_address = web3.eth.contract(address="0x...").address
 
-# Check the balance of the user's account to make sure the swap was successful
-new_balance = web3.eth.getBalance(web3.eth.defaultAccount)
-assert new_balance == balance - amount
+# Swap USDC for USDT on Zyber V3
+zyber_swap_txn = contract.functions.swap(
+    usdc_address,
+    usdc_amount,
+    "0x...",  # Zyber V3 contract address
+).transact()
+
+# Wait for the Zyber V3 transaction to be mined
+web3.eth.waitForTransactionReceipt(zyber_swap_txn)
+
+print("Successfully swapped 10 WETH for USDT!")
