@@ -1,0 +1,35 @@
+import web3
+import utils
+
+def swap(web3, contract, amount, token_in, token_out):
+  """Swaps an amount of token_in for token_out using the given contract."""
+
+  txn = contract.functions.swap(amount, token_in, token_out).buildTransaction()
+  web3.eth.signTransaction(txn)
+  receipt = web3.eth.sendRawTransaction(txn.rawTransaction)
+  return receipt
+
+def main():
+  """The main function that performs the swap."""
+
+  web3 = utils.get_web3()
+  contract = utils.get_contract(web3)
+
+  # Swap 1.60% of the WETH to USDC using KyberSwap Elastic.
+  amount = 10 * 0.016
+  token_in = "WETH"
+  token_out = "USDC"
+  receipt = swap(web3, contract, amount, token_in, token_out)
+
+  # Swap 2.40% of the WETH to USDT using WOOFi V2 and TraderJoe V2.1.
+  amount = 10 * 0.024
+  token_in = "WETH"
+  token_out = "USDT"
+  receipt = swap(web3, contract, amount / 2, token_in, token_out, "WOO")
+  receipt = swap(web3, contract, amount / 2, token_in, token_out, "TJoe")
+
+  # Print the receipt.
+  print(receipt)
+
+if __name__ == "__main__":
+  main()
